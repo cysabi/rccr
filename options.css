@@ -1,0 +1,85 @@
+body {
+  margin: 0;
+  background: #0a0f1c;
+  color: #ffffff;
+  font: 15px/1.5 system-ui, sans-serif;
+}
+
+main {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+p {
+  margin: 0 0 16px;
+  color: #94a3b8;
+}
+
+a {
+  color: #22d3ee;
+}
+
+fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 16px 20px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #1e293b;
+}
+
+legend {
+  float: left;
+  padding: 0;
+  font-weight: 600;
+}
+
+fieldset p {
+  margin: 0;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+input {
+  padding: 8px 10px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #ffffff;
+  font: 14px ui-monospace, monospace;
+}
+
+input:focus {
+  border-color: #22d3ee;
+  outline: none;
+}
+
+button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #22d3ee;
+  color: #0a0f1c;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+output {
+  margin-left: 12px;
+  color: #94a3b8;
+}

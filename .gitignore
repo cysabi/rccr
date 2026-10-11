@@ -1,0 +1,10 @@
+# secrets
+.env
+zoom-links.json
+
+# builds (these have the secrets baked in)
+web-ext-artifacts/
+
+node_modules/
+.crush/
+.DS_Store

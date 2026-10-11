@@ -1,0 +1,665 @@
+/*
+ * Measurements come from batchmate's "Home — Desktop — With Zoom" frame
+ * (docs/design/batchmate.pen), which is drawn at 1280×800. Every size is a
+ * multiple of --px, so the whole layout scales up to fill the TV.
+ */
+@font-face {
+  font-family: "Inter";
+  src: url("fonts/Inter-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+}
+@font-face {
+  font-family: "Sometype Mono";
+  src: url("fonts/SometypeMono-400.woff2") format("woff2");
+  font-weight: 400;
+}
+@font-face {
+  font-family: "Sometype Mono";
+  src: url("fonts/SometypeMono-600.woff2") format("woff2");
+  font-weight: 600;
+}
+@font-face {
+  font-family: "Sometype Mono";
+  src: url("fonts/SometypeMono-700.woff2") format("woff2");
+  font-weight: 700;
+}
+
+:root {
+  --background: #0a0f1c;
+  --card: #1e293b;
+  --surface-inset: #0f172a;
+  --foreground: #ffffff;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --text-muted: #475569;
+  --cyan: #22d3ee;
+  --amber: #fbbf24;
+  --radius: calc(6 * var(--px));
+
+  --px: max(0.75px, min(100vw / 1280, 100vh / 720));
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "Sometype Mono", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* The page is exactly as big as the window, so it never scrolls. Only the
+   schedule does, when it's long. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* The icons, which are only referenced by <use>. */
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+svg {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: calc(36 * var(--px));
+  width: calc(960 * var(--px));
+  max-width: calc(100% - 48px);
+  margin: 0 auto;
+  padding: calc(24 * var(--px)) 0;
+}
+
+/* With the calendar set up, the schedule takes the right 40% of the page, as
+   tall as the tiles. The empty rows either side centre it all under the
+   header. */
+.content.has-schedule {
+  display: grid;
+  height: 100%;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-rows: auto 1fr auto auto 1fr;
+  grid-template-areas:
+    "header header"
+    ". ."
+    "rooms schedule"
+    "lounge schedule"
+    ". .";
+  gap: calc(36 * var(--px)) calc(40 * var(--px));
+  width: calc(1200 * var(--px));
+}
+
+.header {
+  grid-area: header;
+}
+
+.rooms {
+  grid-area: rooms;
+}
+
+.lounge {
+  grid-area: lounge;
+}
+
+.schedule {
+  grid-area: schedule;
+}
+
+.content:not(.has-schedule) .schedule {
+  display: none;
+}
+
+/* Header */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: calc(12 * var(--px));
+}
+
+.logo-box {
+  display: grid;
+  place-items: center;
+  width: calc(36 * var(--px));
+  height: calc(36 * var(--px));
+  border-radius: var(--radius);
+  background: var(--card);
+}
+
+.logo {
+  height: calc(22 * var(--px));
+  image-rendering: pixelated;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: calc(2 * var(--px));
+}
+
+.eyebrow {
+  color: var(--text-tertiary);
+  font-size: calc(11 * var(--px));
+}
+
+.title {
+  color: var(--text-secondary);
+  font-size: calc(17 * var(--px));
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.clock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: calc(2 * var(--px));
+}
+
+.clock-time {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: calc(17 * var(--px));
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.clock-date {
+  color: var(--text-tertiary);
+  font-size: calc(11 * var(--px));
+}
+
+/* Section */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10 * var(--px));
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: calc(6 * var(--px));
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: calc(11 * var(--px));
+  font-weight: 600;
+  letter-spacing: calc(2 * var(--px));
+  text-transform: uppercase;
+}
+
+.section-icon {
+  width: calc(14 * var(--px));
+  height: calc(14 * var(--px));
+  color: var(--cyan);
+}
+
+/* Room tiles, after batchmate's door control cards */
+
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: calc(60 * var(--px));
+  gap: calc(10 * var(--px));
+  list-style: none;
+}
+
+.room-grid > .wide {
+  grid-column: 1 / -1;
+}
+
+.room {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(12 * var(--px));
+  height: 100%;
+  padding: 0 calc(10 * var(--px));
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--card);
+  color: inherit;
+  text-decoration: none;
+  user-select: none;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.room:hover {
+  border-color: rgb(34 211 238 / 0.3);
+}
+
+.room:active {
+  background: rgb(30 41 59 / 0.8);
+}
+
+.room:focus-visible {
+  outline: 2px solid rgb(34 211 238 / 0.5);
+  outline-offset: 2px;
+}
+
+/* The room's icon with its keyboard shortcut beside it, in one inset block. */
+.room-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(8 * var(--px));
+  height: calc(40 * var(--px));
+  padding: 0 calc(6 * var(--px)) 0 calc(10 * var(--px));
+  border-radius: var(--radius);
+  background: var(--surface-inset);
+  color: var(--cyan);
+}
+
+.room-icon svg {
+  width: calc(18 * var(--px));
+  height: calc(18 * var(--px));
+}
+
+/* A keycap: the base is a dark rounded block, and the cap sits inside it with
+   a taller lip showing below. Pressing slides the cap down into the base. */
+.room-key {
+  display: block;
+  flex: none;
+  padding: 1px 1px calc(3 * var(--px));
+  overflow: clip;
+  border-radius: calc(4 * var(--px));
+  background: var(--card);
+}
+
+.room-key-cap {
+  display: grid;
+  place-items: center;
+  min-width: calc(20 * var(--px));
+  height: calc(20 * var(--px));
+  padding: 0 calc(5 * var(--px));
+  border-radius: calc(3 * var(--px));
+  background: #334155;
+  color: #cbd5e1;
+  font-family: var(--font-mono);
+  font-size: calc(11 * var(--px));
+  font-weight: 700;
+  line-height: 1;
+}
+
+.room:active .room-key-cap {
+  transform: translateY(calc(2 * var(--px)));
+}
+
+.room-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(4 * var(--px));
+  min-width: 0;
+}
+
+.room-name {
+  overflow: hidden;
+  font-size: calc(16 * var(--px));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Second line: how many guests and their faces, then "Now: Event" or
+   "Starting soon: Event". */
+.room-meta {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: calc(12 * var(--px));
+  white-space: nowrap;
+}
+
+.room-meta:not(:has(> :not(:empty, [hidden]))) {
+  display: none;
+}
+
+.room-meta > :empty,
+.room-meta > [hidden] {
+  display: none;
+}
+
+/* The head count, as a little user icon and a number. */
+.room-guests {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: calc(3 * var(--px));
+  margin-right: calc(6 * var(--px));
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: calc(12 * var(--px));
+  font-weight: 600;
+}
+
+.room-guests svg {
+  width: calc(12 * var(--px));
+  height: calc(12 * var(--px));
+  color: var(--text-tertiary);
+}
+
+/* "Now: Event", taking whatever room the faces leave. */
+.room-status {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.faces:not(:empty) ~ .room-status::before {
+  margin: 0 calc(6 * var(--px));
+  color: var(--text-tertiary);
+  content: "·";
+}
+
+.room-status-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.room-status-text marquee {
+  display: block;
+}
+
+/* A calendar event is happening in the room. */
+.room.live {
+  border-color: rgb(34 211 238 / 0.35);
+}
+
+.room.live .room-status-text {
+  color: var(--cyan);
+}
+
+/* An event starts within a few minutes. */
+.room.soon {
+  border-color: rgb(251 191 36 / 0.35);
+}
+
+.room.soon .room-status-text {
+  color: var(--amber);
+}
+
+/* Faces of the people in a room, overlapping like a hand of cards. Everyone
+   gets one, and the row is cut off when it runs out of space. */
+.faces {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.faces:empty {
+  display: none;
+}
+
+.face {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: calc(18 * var(--px));
+  height: calc(18 * var(--px));
+  border: calc(1.5 * var(--px)) solid var(--card);
+  border-radius: 50%;
+  background: #334155;
+  color: #e2e8f0;
+  font-size: calc(7 * var(--px));
+  font-weight: 600;
+  object-fit: cover;
+}
+
+.face + .face {
+  margin-left: calc(-5 * var(--px));
+}
+
+/* Schedule */
+
+.schedule {
+  /* Takes the height the tiles give it, rather than stretching the rows. */
+  contain: size;
+}
+
+/* How far the fades at either end of the schedule reach, which grow in when
+   there are more events past that end. Registered so they can animate. */
+@property --fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+.schedule-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(10 * var(--px));
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  /* Just a thin, faint pill. */
+  scrollbar-color: rgb(148 163 184 / 0.25) transparent;
+  scrollbar-width: thin;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black var(--fade-top),
+    black calc(100% - var(--fade-bottom)),
+    transparent
+  );
+  transition:
+    --fade-top 150ms,
+    --fade-bottom 150ms;
+}
+
+.schedule-list:empty {
+  display: none;
+}
+
+.schedule-list.fade-top {
+  --fade-top: calc(48 * var(--px));
+}
+
+.schedule-list.fade-bottom {
+  --fade-bottom: calc(48 * var(--px));
+}
+
+/* Once today's events are over. */
+.schedule-done {
+  padding: calc(14 * var(--px));
+  border: 1px solid var(--card);
+  border-radius: var(--radius);
+  color: var(--text-tertiary);
+  font-size: calc(13 * var(--px));
+  text-align: center;
+}
+
+.event {
+  display: flex;
+  align-items: center;
+  gap: calc(12 * var(--px));
+  padding: calc(10 * var(--px));
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--card);
+  color: inherit;
+  text-decoration: none;
+  user-select: none;
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.event:hover {
+  border-color: rgb(34 211 238 / 0.3);
+}
+
+.event:active {
+  background: rgb(30 41 59 / 0.8);
+}
+
+.event:focus-visible {
+  outline: 2px solid rgb(34 211 238 / 0.5);
+  outline-offset: 2px;
+}
+
+.event.live {
+  border-color: rgb(34 211 238 / 0.35);
+  color: var(--cyan);
+}
+
+.event.soon {
+  border-color: rgb(251 191 36 / 0.35);
+  color: var(--amber);
+}
+
+.event-time {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: calc(2 * var(--px));
+  width: calc(68 * var(--px));
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.event-start {
+  font-size: calc(13 * var(--px));
+  font-weight: 600;
+}
+
+.event-end {
+  color: var(--text-muted);
+  font-size: calc(11 * var(--px));
+}
+
+.event-end::before {
+  content: "– ";
+}
+
+.event-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: calc(4 * var(--px));
+  min-width: 0;
+}
+
+.event-title {
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: calc(14 * var(--px));
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* As tall as a face, so rows don't grow when people join. */
+.event-meta {
+  display: flex;
+  align-items: center;
+  gap: calc(5 * var(--px));
+  height: calc(18 * var(--px));
+  min-width: 0;
+}
+
+.event-room {
+  display: flex;
+  align-items: center;
+  gap: calc(5 * var(--px));
+  min-width: 0;
+  color: var(--text-tertiary);
+  font-size: calc(12 * var(--px));
+  white-space: nowrap;
+}
+
+.event-room svg {
+  width: calc(12 * var(--px));
+  height: calc(12 * var(--px));
+  color: var(--cyan);
+}
+
+/* "Aegis · now" or "Verve · starting soon", in the event's colour. */
+.event-when {
+  color: var(--text-tertiary);
+}
+
+.event-when::before {
+  margin-right: calc(5 * var(--px));
+  color: var(--text-tertiary);
+  content: "·";
+}
+
+.event.live .event-when {
+  color: var(--cyan);
+}
+
+.event.soon .event-when {
+  color: var(--amber);
+}
+
+.event-meta .faces:not(:empty)::before {
+  margin-right: calc(5 * var(--px));
+  color: var(--text-tertiary);
+  font-size: calc(12 * var(--px));
+  content: "·";
+}
+
+.event-when:empty {
+  display: none;
+}
+
+/* Below desktop widths the schedule moves under the tiles. */
+@media (max-width: 1000px) {
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+  }
+
+  .content.has-schedule {
+    display: flex;
+    height: auto;
+    width: calc(960 * var(--px));
+  }
+
+  .schedule {
+    contain: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .room-grid {
+    grid-template-columns: 1fr;
+  }
+}

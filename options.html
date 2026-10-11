@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="dark" />
+    <title>Recurse Center Conference Room settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Recurse Center Conference Room</h1>
+      <p>
+        These turn on the live room status: who's in each Zoom room, and what's on the calendar. Leave
+        them empty to use the ones built into the extension, if any.
+      </p>
+
+      <form id="settings">
+        <fieldset>
+          <legend>Virtual RC</legend>
+          <p>
+            Create an app at
+            <a href="https://recurse.rctogether.com/apps" target="_blank">recurse.rctogether.com/apps</a>.
+          </p>
+          <label>App ID <input name="rctAppId" autocomplete="off" spellcheck="false" /></label>
+          <label>App secret <input name="rctAppSecret" type="password" autocomplete="off" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Calendar</legend>
+          <p>
+            Paste the iCal link from
+            <a href="https://www.recurse.com/calendar" target="_blank">recurse.com/calendar</a>, or
+            just its token.
+          </p>
+          <label>
+            Calendar link or token
+            <input name="calendarToken" type="password" autocomplete="off" />
+          </label>
+        </fieldset>
+
+        <button type="submit">Save</button>
+        <output id="status"></output>
+      </form>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>
