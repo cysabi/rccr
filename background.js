@@ -1,7 +1,12 @@
+import { fetchEvents } from "./room-status.js";
+import { loadSettings } from "./settings.js";
+
 const api = globalThis.browser ?? globalThis.chrome;
 
 // How long the room must be completely quiet before we reset the browser.
 const IDLE_MINUTES = 60;
+// How often a fresh calendar is saved for the rooms page to show.
+const CALENDAR_REFRESH_HOURS = 2;
 // We can't see inside the Zoom desktop app, so after a meeting is launched we
 // assume it's still running until Zoom shows its post-meeting page or this
 // much time passes.
@@ -131,24 +136,27 @@ async function isBusy(tabs, meetingLaunchedAt) {
 function isClean(windows) {
   if (windows.length !== 1) return false;
   const [win] = windows;
-  return (
-    win.state === "fullscreen" &&
-    win.tabs.length === 1 &&
-    NEW_TAB_URLS.has(win.tabs[0].url)
-  );
+  return win.tabs.length === 1 && NEW_TAB_URLS.has(win.tabs[0].url);
 }
 
+// Leaves one window with just the rooms page in it. A tab already showing the
+// rooms page is kept rather than opening a new one, so it doesn't flash white
+// and load again (e.g. the homepage, right after Firefox starts).
 async function resetBrowser() {
   const windows = await api.windows.getAll({ populate: true, windowTypes: ["normal"] });
   if (windows.length === 0) {
-    await api.windows.create({ state: "fullscreen" });
+    await api.windows.create();
     return;
   }
-  const [keep, ...others] = windows;
-  await api.tabs.create({ windowId: keep.id, active: true });
-  await api.tabs.remove(keep.tabs.map((tab) => tab.id));
-  await Promise.all(others.map((win) => api.windows.remove(win.id)));
-  await api.windows.update(keep.id, { state: "fullscreen" });
+  const tabs = windows.flatMap((win) => win.tabs);
+  const rooms =
+    tabs.find((tab) => NEW_TAB_URLS.has(tab.url)) ??
+    (await api.tabs.create({ windowId: windows[0].id }));
+  await api.tabs.update(rooms.id, { active: true });
+  await api.tabs.remove(tabs.filter((tab) => tab.id !== rooms.id).map((tab) => tab.id));
+  await Promise.all(
+    windows.filter((win) => win.id !== rooms.windowId).map((win) => api.windows.remove(win.id)),
+  );
 }
 
 async function tick() {
@@ -191,8 +199,15 @@ api.webRequest.onBeforeSendHeaders.addListener(
   ["blocking", "requestHeaders"],
 );
 
+// The rooms page shows this saved copy straight away, then fetches its own.
+async function refreshCalendar() {
+  const { calendarToken } = await loadSettings();
+  if (calendarToken) await fetchEvents(calendarToken);
+}
+
 api.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === "tick") tick();
+  if (alarm.name === "calendar") refreshCalendar();
 });
 
 api.runtime.onStartup.addListener(async () => {
@@ -202,4 +217,14 @@ api.runtime.onStartup.addListener(async () => {
 
 api.alarms.get("tick").then((alarm) => {
   if (!alarm) api.alarms.create("tick", { periodInMinutes: 1 });
+});
+
+// Created without a delay, so the first one is saved right away.
+api.alarms.get("calendar").then((alarm) => {
+  if (!alarm) {
+    api.alarms.create("calendar", {
+      when: Date.now(),
+      periodInMinutes: CALENDAR_REFRESH_HOURS * 60,
+    });
+  }
 });

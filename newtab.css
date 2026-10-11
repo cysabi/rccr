@@ -75,22 +75,14 @@ svg {
   stroke: currentColor;
 }
 
+/* The schedule takes the right 40% of the page, as tall as the tiles. The
+   empty rows either side centre it all under the header. */
 .content {
-  display: flex;
-  flex-direction: column;
-  gap: calc(36 * var(--px));
-  width: calc(960 * var(--px));
+  display: grid;
+  height: 100%;
   max-width: calc(100% - 48px);
   margin: 0 auto;
   padding: calc(24 * var(--px)) 0;
-}
-
-/* With the calendar set up, the schedule takes the right 40% of the page, as
-   tall as the tiles. The empty rows either side centre it all under the
-   header. */
-.content.has-schedule {
-  display: grid;
-  height: 100%;
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   grid-template-rows: auto 1fr auto auto 1fr;
   grid-template-areas:
@@ -117,10 +109,6 @@ svg {
 
 .schedule {
   grid-area: schedule;
-}
-
-.content:not(.has-schedule) .schedule {
-  display: none;
 }
 
 /* Header */
@@ -377,6 +365,11 @@ svg {
   content: "·";
 }
 
+.room-status-label {
+  flex: none;
+  white-space: pre;
+}
+
 .room-status-text {
   flex: 1;
   min-width: 0;
@@ -392,7 +385,7 @@ svg {
   border-color: rgb(34 211 238 / 0.35);
 }
 
-.room.live .room-status-text {
+.room.live .room-status {
   color: var(--cyan);
 }
 
@@ -401,7 +394,7 @@ svg {
   border-color: rgb(251 191 36 / 0.35);
 }
 
-.room.soon .room-status-text {
+.room.soon .room-status {
   color: var(--amber);
 }
 
@@ -444,32 +437,37 @@ svg {
   contain: size;
 }
 
-/* How far the fades at either end of the schedule reach, which grow in when
-   there are more events past that end. Registered so they can animate. */
-@property --fade-top {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --fade-bottom {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-.schedule-list {
-  display: flex;
+.schedule-scroll {
+  position: relative;
   flex: 1;
+  min-height: 0;
+}
+
+.schedule-scroll:has(.schedule-list:empty) {
+  display: none;
+}
+
+/* The ends fade out with a fixed mask over padding. At the top or bottom only
+   that empty padding is under the fade, and scrolling slides the events into
+   it, so each fade comes in as there's more to scroll that way. The negative
+   margins push the padding out of the box, so the events still line up with
+   the tiles: up into the gap under the heading, and down into the empty space
+   below the tiles. */
+.schedule-list {
+  --fade-top: calc(10 * var(--px));
+  --fade-bottom: calc(40 * var(--px));
+  display: flex;
   flex-direction: column;
   gap: calc(10 * var(--px));
-  min-height: 0;
+  height: calc(100% + var(--fade-top) + var(--fade-bottom));
+  margin: calc(-1 * var(--fade-top)) 0 calc(-1 * var(--fade-bottom));
+  padding: var(--fade-top) 0 var(--fade-bottom);
   overflow-y: auto;
   overscroll-behavior: contain;
   list-style: none;
-  /* Just a thin, faint pill. */
-  scrollbar-color: rgb(148 163 184 / 0.25) transparent;
-  scrollbar-width: thin;
+  /* Firefox's own scrollbar has arrows and takes room from the events, so
+     there's a drawn one instead. */
+  scrollbar-width: none;
   mask-image: linear-gradient(
     to bottom,
     transparent,
@@ -477,21 +475,35 @@ svg {
     black calc(100% - var(--fade-bottom)),
     transparent
   );
-  transition:
-    --fade-top 150ms,
-    --fade-bottom 150ms;
 }
 
-.schedule-list:empty {
-  display: none;
+/* A thin pill out in the margin, so the events stay lined up with the
+   heading. Only shows while you're hovering the schedule. */
+.scrollbar {
+  position: absolute;
+  top: 0;
+  right: calc(-12 * var(--px));
+  bottom: 0;
+  width: calc(3 * var(--px));
+  opacity: 0;
+  transition: opacity 200ms;
 }
 
-.schedule-list.fade-top {
-  --fade-top: calc(48 * var(--px));
+.schedule-scroll:hover .scrollbar,
+.scrollbar.dragging {
+  opacity: 1;
 }
 
-.schedule-list.fade-bottom {
-  --fade-bottom: calc(48 * var(--px));
+.scrollbar-thumb {
+  width: 100%;
+  border-radius: 999px;
+  background: rgb(148 163 184 / 0.15);
+  transition: background 150ms;
+}
+
+.scrollbar-thumb:hover,
+.scrollbar.dragging .scrollbar-thumb {
+  background: rgb(148 163 184 / 0.35);
 }
 
 /* Once today's events are over. */
@@ -647,8 +659,9 @@ svg {
     overflow: visible;
   }
 
-  .content.has-schedule {
+  .content {
     display: flex;
+    flex-direction: column;
     height: auto;
     width: calc(960 * var(--px));
   }

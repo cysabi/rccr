@@ -8,8 +8,6 @@ const RCT_CABLE_URL = "wss://recurse.rctogether.com/cable";
 const CALENDAR_URL = "https://www.recurse.com/calendar/events.ics";
 const RC_ZOOM_PREFIX = "https://www.recurse.com/zoom/";
 
-// How long a downloaded calendar is used before fetching it again.
-const CALENDAR_REFRESH_MINUTES = 15;
 // Calendar events starting further out than this are dropped.
 const CALENDAR_DAYS_AHEAD = 7;
 // Virtual RC sometimes leaves people "in" a room long after they've gone.
@@ -160,28 +158,25 @@ export function watchOccupancy({ appId, appSecret }, onChange) {
   return { peopleByRoom };
 }
 
-// Upcoming calendar events that have a Zoom link, soonest first. Uses the
-// cached copy while it's recent, and falls back to it if the fetch fails.
-export async function loadEvents(token) {
-  const { calendarCache: cache } = await api.storage.local.get("calendarCache");
-  if (cache && Date.now() - cache.fetchedAt < CALENDAR_REFRESH_MINUTES * MINUTE) {
-    return cache.events;
-  }
-  try {
-    const url = new URL(CALENDAR_URL);
-    url.searchParams.set("token", token);
-    url.searchParams.set("omit_cancelled_events", "1");
-    url.searchParams.set("scope", "all");
-    const response = await fetch(url, { credentials: "omit", cache: "no-store" });
-    if (!response.ok) throw new Error(`Calendar request failed: HTTP ${response.status}`);
-    const fetchedAt = Date.now();
-    const events = parseEvents(await response.text(), fetchedAt);
-    await api.storage.local.set({ calendarCache: { fetchedAt, events } });
-    return events;
-  } catch (error) {
-    if (cache) return cache.events;
-    throw error;
-  }
+// The calendar events saved by the last fetchEvents, or null before the first.
+export async function cachedEvents() {
+  const { calendarCache } = await api.storage.local.get("calendarCache");
+  return calendarCache?.events ?? null;
+}
+
+// Downloads the upcoming calendar events that have a Zoom link, soonest first,
+// and saves them for cachedEvents.
+export async function fetchEvents(token) {
+  const url = new URL(CALENDAR_URL);
+  url.searchParams.set("token", token);
+  url.searchParams.set("omit_cancelled_events", "1");
+  url.searchParams.set("scope", "all");
+  const response = await fetch(url, { credentials: "omit", cache: "no-store" });
+  if (!response.ok) throw new Error(`Calendar request failed: HTTP ${response.status}`);
+  const fetchedAt = Date.now();
+  const events = parseEvents(await response.text(), fetchedAt);
+  await api.storage.local.set({ calendarCache: { fetchedAt, events } });
+  return events;
 }
 
 // Pulls the events with a Zoom link out of an iCalendar file, keeping the ones

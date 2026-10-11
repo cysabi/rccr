@@ -14,6 +14,7 @@ const FILES = [
   "background.js",
   "media.js",
   "room-status.js",
+  "settings.js",
   "newtab.html",
   "newtab.css",
   "newtab.js",

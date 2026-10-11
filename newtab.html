@@ -45,7 +45,10 @@
           <svg class="section-icon"><use href="#icon-calendar" /></svg>
           Today's schedule
         </h2>
-        <ol class="schedule-list" id="schedule"></ol>
+        <div class="schedule-scroll">
+          <ol class="schedule-list" id="schedule"></ol>
+          <div class="scrollbar" hidden><div class="scrollbar-thumb"></div></div>
+        </div>
         <p class="schedule-done" id="schedule-done" hidden></p>
       </aside>
     </main>
@@ -64,7 +67,9 @@
                 <svg><use href="#icon-user" /></svg><span class="room-guests-count"></span>
               </span>
               <span class="faces"></span>
-              <span class="room-status" hidden><span class="room-status-text"></span></span>
+              <span class="room-status" hidden>
+                <span class="room-status-label"></span><span class="room-status-text"></span>
+              </span>
             </span>
           </span>
         </a>

@@ -1,5 +1,6 @@
-import { loadEvents, roomSlug, watchOccupancy } from "./room-status.js";
-import { TOKENS, ZOOM_LINKS } from "./secrets.js";
+import { cachedEvents, fetchEvents, roomSlug, watchOccupancy } from "./room-status.js";
+import { ZOOM_LINKS } from "./secrets.js";
+import { SETTINGS, loadSettings } from "./settings.js";
 
 const api = globalThis.browser ?? globalThis.chrome;
 
@@ -7,7 +8,6 @@ const api = globalThis.browser ?? globalThis.chrome;
 const SOON_MINUTES = 5;
 
 const MINUTE = 60 * 1000;
-const SETTINGS = ["rctAppId", "rctAppSecret", "calendarToken"];
 
 // Rooms get their direct Zoom link from zoom-links.json when the extension is
 // built. Without one, they go through recurse.com, which needs you signed in.
@@ -60,6 +60,7 @@ function buildTile(room) {
     guestCount: item.querySelector(".room-guests-count"),
     faces: item.querySelector(".faces"),
     status: item.querySelector(".room-status"),
+    statusLabel: item.querySelector(".room-status-label"),
     statusText: item.querySelector(".room-status-text"),
   });
   return item;
@@ -104,15 +105,14 @@ renderClock();
 
 const hourFormat = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute: "2-digit" });
 
-const content = document.querySelector(".content");
 const schedule = document.getElementById("schedule");
 const scheduleDone = document.getElementById("schedule-done");
 
-const stored = await api.storage.local.get(SETTINGS);
-// Anything left empty on the options page falls back to the built-in tokens.
-const settings = Object.fromEntries(SETTINGS.map((key) => [key, stored[key] || TOKENS[key]]));
+const settings = await loadSettings();
 let occupancy = null;
-let events = [];
+// The background script saves a fresh calendar every few hours, so there's
+// nearly always one to show straight away. null until there is one.
+let events = await cachedEvents();
 let calendarFailed = false;
 
 function face({ name, image }) {
@@ -152,19 +152,20 @@ function renderTiles(now, people) {
     tile.guestCount.textContent = here.length;
     tile.guests.title = `${here.length} guest${here.length === 1 ? "" : "s"}`;
     renderFaces(tile.faces, here);
-    const roomEvents = events.filter((event) => event.room === slug);
+    const roomEvents = (events ?? []).filter((event) => event.room === slug);
     const live = roomEvents.find((event) => isLive(event, now));
     const soon = !live && roomEvents.find((event) => isSoon(event, now));
     tile.link.classList.toggle("live", Boolean(live));
     tile.link.classList.toggle("soon", Boolean(soon));
     tile.status.hidden = !live && !soon;
-    renderStatus(tile.statusText, live ? `Now: ${live.title}` : soon ? `Starting soon: ${soon.title}` : "");
+    tile.statusLabel.textContent = live ? "Now: " : soon ? "Starting soon: " : "";
+    renderStatus(tile.statusText, (live || soon)?.title ?? "");
   }
 }
 
-// "Now: Event", which scrolls by in a marquee when it's too long to fit,
-// because that's funny. The marquee is only rebuilt when it has to be, so
-// people coming and going don't keep restarting it.
+// The event's title, which scrolls by in a marquee after the "Now: " when
+// it's too long to fit, because that's funny. The marquee is only rebuilt
+// when it has to be, so people coming and going don't keep restarting it.
 function renderStatus(element, text) {
   if (element.dataset.text !== text) {
     element.dataset.text = text;
@@ -220,48 +221,85 @@ function buildEvent(event, now, people) {
 // The rest of today's events.
 function renderSchedule(now, people) {
   const today = new Date(now).toDateString();
-  const shown = events.filter(
+  const shown = (events ?? []).filter(
     (event) => event.end > now && new Date(Math.max(event.start, now)).toDateString() === today,
   );
   schedule.replaceChildren(...shown.map((event) => buildEvent(event, now, people)));
-  fadeScheduleEnds();
+  moveScrollbar();
 
   scheduleDone.hidden = shown.length > 0;
-  scheduleDone.textContent = calendarFailed
-    ? "Couldn't load the RC calendar."
-    : "There's nothing left for today.";
+  scheduleDone.textContent = events
+    ? "There's nothing left for today."
+    : !settings.calendarToken
+      ? "No calendar token. Add one on the options page."
+      : calendarFailed
+        ? "Couldn't load the RC calendar."
+        : "Loading…";
 }
 
-// Fades out whichever ends of the schedule have more events past them.
-function fadeScheduleEnds() {
+const scrollbar = document.querySelector(".scrollbar");
+const scrollbarThumb = document.querySelector(".scrollbar-thumb");
+
+// Sizes and moves the scrollbar's thumb to match the schedule.
+function moveScrollbar() {
   const { scrollTop, scrollHeight, clientHeight } = schedule;
-  schedule.classList.toggle("fade-top", scrollTop > 0);
-  schedule.classList.toggle("fade-bottom", scrollTop + clientHeight < scrollHeight - 1);
+  scrollbar.hidden = scrollHeight <= clientHeight + 1;
+  if (scrollbar.hidden) return;
+  const track = scrollbar.clientHeight;
+  const thumbHeight = Math.max((clientHeight / scrollHeight) * track, 24);
+  scrollbarThumb.style.height = `${thumbHeight}px`;
+  scrollbarThumb.style.transform = `translateY(${(scrollTop / (scrollHeight - clientHeight)) * (track - thumbHeight)}px)`;
 }
-schedule.addEventListener("scroll", fadeScheduleEnds, { passive: true });
+schedule.addEventListener("scroll", moveScrollbar, { passive: true });
+
+scrollbarThumb.addEventListener("pointerdown", (event) => {
+  const startY = event.clientY;
+  const startTop = schedule.scrollTop;
+  const { scrollHeight, clientHeight } = schedule;
+  const perPixel =
+    (scrollHeight - clientHeight) / (scrollbar.clientHeight - scrollbarThumb.offsetHeight);
+  const drag = (move) => (schedule.scrollTop = startTop + (move.clientY - startY) * perPixel);
+  scrollbarThumb.setPointerCapture(event.pointerId);
+  scrollbar.classList.add("dragging");
+  scrollbarThumb.addEventListener("pointermove", drag);
+  scrollbarThumb.addEventListener(
+    "lostpointercapture",
+    () => {
+      scrollbar.classList.remove("dragging");
+      scrollbarThumb.removeEventListener("pointermove", drag);
+    },
+    { once: true },
+  );
+  event.preventDefault();
+});
 
 function render() {
   const now = Date.now();
   const people = occupancy?.peopleByRoom() ?? null;
   renderTiles(now, people);
-  if (settings.calendarToken) renderSchedule(now, people);
+  renderSchedule(now, people);
 }
 
-async function tick() {
-  if (settings.calendarToken) {
-    try {
-      events = await loadEvents(settings.calendarToken);
-      calendarFailed = false;
-    } catch (error) {
-      console.error(error);
-      calendarFailed = true;
-    }
-  }
+// Every minute, for events starting and ending.
+function tick() {
   render();
   setTimeout(tick, MINUTE - (Date.now() % MINUTE));
 }
 
-if (settings.calendarToken) content.classList.add("has-schedule");
+// Shows the saved calendar first, then swaps in a fresh one, in case
+// something was added since the background script last saved it.
+async function refreshCalendar() {
+  if (!settings.calendarToken) return;
+  try {
+    events = await fetchEvents(settings.calendarToken);
+  } catch (error) {
+    // The saved calendar, if there is one, is close enough.
+    console.error(error);
+    calendarFailed = true;
+  }
+  render();
+}
+
 if (settings.rctAppId && settings.rctAppSecret) {
   occupancy = watchOccupancy(
     { appId: settings.rctAppId, appSecret: settings.rctAppSecret },
@@ -271,6 +309,7 @@ if (settings.rctAppId && settings.rctAppSecret) {
 // Text is measured for the marquees, so wait for the real fonts.
 await document.fonts.ready;
 tick();
+refreshCalendar();
 window.addEventListener("resize", () => {
   // Everything scales with the window, so measure the statuses again.
   for (const tile of tiles.values()) delete tile.statusText.dataset.text;
@@ -278,5 +317,11 @@ window.addEventListener("resize", () => {
 });
 
 api.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && SETTINGS.some((key) => key in changes)) location.reload();
+  if (area !== "local") return;
+  if (SETTINGS.some((key) => key in changes)) location.reload();
+  // The background script saved a fresh calendar.
+  if (changes.calendarCache?.newValue) {
+    events = changes.calendarCache.newValue.events;
+    render();
+  }
 });
