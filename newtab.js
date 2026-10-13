@@ -1,6 +1,6 @@
 import { cachedEvents, fetchEvents, roomSlug, watchOccupancy } from "./room-status.js";
 import { ZOOM_LINKS } from "./secrets.js";
-import { SETTINGS, loadSettings } from "./settings.js";
+import { SETTINGS, loadSettings, seedSettings } from "./settings.js";
 
 const api = globalThis.browser ?? globalThis.chrome;
 
@@ -108,7 +108,10 @@ const hourFormat = new Intl.DateTimeFormat(undefined, { hour: "numeric", minute:
 const schedule = document.getElementById("schedule");
 const scheduleDone = document.getElementById("schedule-done");
 
+// In case this page opened before the background script seeded the settings.
+await seedSettings();
 const settings = await loadSettings();
+document.getElementById("room-name").textContent = settings.roomName;
 let occupancy = null;
 // The background script saves a fresh calendar every few hours, so there's
 // nearly always one to show straight away. null until there is one.
@@ -144,6 +147,9 @@ function renderFaces(container, people = []) {
 
 const isLive = (event, now) => event.start <= now && now < event.end;
 const isSoon = (event, now) => now < event.start && event.start - now <= SOON_MINUTES * MINUTE;
+// Whether an event's in-person room is the one this screen is in.
+const isHere = (place) =>
+  Boolean(place) && place.trim().toLowerCase() === settings.roomName.trim().toLowerCase();
 
 function renderTiles(now, people) {
   for (const [slug, tile] of tiles) {
@@ -213,7 +219,11 @@ function buildEvent(event, now, people) {
   item.querySelector(".event-title").textContent = event.title;
   item.querySelector(".event-room-name").textContent =
     room?.name ?? (event.room ? roomTitle(event.room) : "Zoom");
-  item.querySelector("use").setAttribute("href", `#icon-${room?.icon ?? "video"}`);
+  item.querySelector(".event-zoom use").setAttribute("href", `#icon-${room?.icon ?? "video"}`);
+  const place = item.querySelector(".event-place");
+  place.hidden = !event.place;
+  place.classList.toggle("here", isHere(event.place));
+  item.querySelector(".event-place-name").textContent = event.place ?? "";
   if (live) renderFaces(item.querySelector(".faces"), people?.get(event.room));
   return item;
 }
@@ -318,7 +328,9 @@ window.addEventListener("resize", () => {
 
 api.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
-  if (SETTINGS.some((key) => key in changes)) location.reload();
+  if (SETTINGS.some((key) => key in changes && changes[key].newValue !== settings[key])) {
+    location.reload();
+  }
   // The background script saved a fresh calendar.
   if (changes.calendarCache?.newValue) {
     events = changes.calendarCache.newValue.events;

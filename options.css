@@ -68,6 +68,10 @@ input:focus {
   outline: none;
 }
 
+input[aria-invalid="true"] {
+  border-color: #f87171;
+}
+
 button {
   padding: 8px 20px;
   border: none;
@@ -79,7 +83,16 @@ button {
   cursor: pointer;
 }
 
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 output {
   margin-left: 12px;
   color: #94a3b8;
+}
+
+output.error {
+  color: #f87171;
 }

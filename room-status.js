@@ -217,9 +217,21 @@ export function parseEvents(ics, now) {
       room: link.startsWith(RC_ZOOM_PREFIX)
         ? roomSlug(link.slice(RC_ZOOM_PREFIX.length))
         : null,
+      place: placeName(unescapeText(props.LOCATION?.value ?? "")),
     });
   }
   return events.sort((a, b) => a.start - b.start);
+}
+
+// The in-person room out of a calendar LOCATION, which looks like
+// "Sammet - RC hub (in-person), 397 Bridge Street, 4th Floor, Brooklyn, NY".
+// Anywhere else keeps its first line, e.g. "NYU ITP". Empty when there isn't one.
+export function placeName(location) {
+  return location
+    .split(",")[0]
+    .replace(/\s*-\s*RC hub.*$/i, "")
+    .replace(/\s*\(physical space\)/i, "")
+    .trim();
 }
 
 function yyyymmdd(time) {

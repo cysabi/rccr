@@ -12,6 +12,8 @@
 - Copy `zoom-links.example.json` to `zoom-links.json` and fill in each room's direct zoom link
 - Run `node build.mjs`
 
+The tokens from `.env` fill in the settings page the first time the extension runs. After that the settings page is the only place they're read from, so changing them there sticks across rebuilds.
+
 ### developing
 ```sh
 npx web-ext run

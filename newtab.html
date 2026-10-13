@@ -15,7 +15,9 @@
           <span class="logo-box"><img class="logo" src="icons/rc.svg" alt="" /></span>
           <div class="brand-text">
             <span class="eyebrow">Recurse Center</span>
-            <h1 class="title">Conference Room</h1>
+            <h1 class="title">
+              Conference Room<span class="title-place"><span class="title-sep">/</span><span id="room-name"></span></span>
+            </h1>
           </div>
         </div>
         <div class="clock">
@@ -27,7 +29,7 @@
       <section class="section rooms" aria-labelledby="rooms-label">
         <h2 class="section-title" id="rooms-label">
           <svg class="section-icon"><use href="#icon-video" /></svg>
-          Meeting Rooms
+          Zoom Rooms
         </h2>
         <ul class="room-grid" id="rooms"></ul>
       </section>
@@ -87,7 +89,7 @@
             <span class="event-title"></span>
             <span class="event-meta">
               <span class="event-room">
-                <svg><use /></svg><span class="event-room-name"></span><span class="event-when"></span>
+                <span class="event-place" hidden><svg><use href="#icon-locate-fixed" /></svg><span class="event-place-name"></span></span><span class="event-zoom"><svg><use /></svg><span class="event-room-name"></span></span><span class="event-when"></span>
               </span>
               <span class="faces"></span>
             </span>
@@ -129,6 +131,14 @@
         <path d="M16 2v4" />
         <rect width="18" height="18" x="3" y="4" rx="2" />
         <path d="M3 10h18" />
+      </symbol>
+      <symbol id="icon-locate-fixed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="2" x2="5" y1="12" y2="12" />
+        <line x1="19" x2="22" y1="12" y2="12" />
+        <line x1="12" x2="12" y1="2" y2="5" />
+        <line x1="12" x2="12" y1="19" y2="22" />
+        <circle cx="12" cy="12" r="7" />
+        <circle cx="12" cy="12" r="3" />
       </symbol>
     </svg>
 

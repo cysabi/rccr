@@ -3,45 +3,47 @@
   <head>
     <meta charset="utf-8" />
     <meta name="color-scheme" content="dark" />
-    <title>Recurse Center Conference Room settings</title>
+    <title>RCCR / Settings</title>
     <link rel="stylesheet" href="options.css" />
   </head>
   <body>
     <main>
-      <h1>Recurse Center Conference Room</h1>
-      <p>
-        These turn on the live room status: who's in each Zoom room, and what's on the calendar. Leave
-        them empty to use the ones built into the extension, if any.
-      </p>
+      <h1>RCCR / Settings</h1>
 
       <form id="settings">
         <fieldset>
-          <legend>Virtual RC</legend>
-          <p>
-            Create an app at
-            <a href="https://recurse.rctogether.com/apps" target="_blank">recurse.rctogether.com/apps</a>.
-          </p>
-          <label>App ID <input name="rctAppId" autocomplete="off" spellcheck="false" /></label>
-          <label>App secret <input name="rctAppSecret" type="password" autocomplete="off" /></label>
+          <legend>room</legend>
+          <p>name of the in-person room this is in</p>
+          <input name="roomName" aria-label="room" placeholder="sammet" autocomplete="off" spellcheck="false" />
         </fieldset>
 
         <fieldset>
-          <legend>Calendar</legend>
+          <legend>virtual rc</legend>
           <p>
-            Paste the iCal link from
+            create an app at
+            <a href="https://recurse.rctogether.com/apps" target="_blank">recurse.rctogether.com/apps</a>.
+          </p>
+          <label>app id <input name="rctAppId" autocomplete="off" spellcheck="false" /></label>
+          <label>app secret <input name="rctAppSecret" autocomplete="off" spellcheck="false" /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>calendar</legend>
+          <p>
+            paste the ical link from
             <a href="https://www.recurse.com/calendar" target="_blank">recurse.com/calendar</a>, or
             just its token.
           </p>
           <label>
-            Calendar link or token
-            <input name="calendarToken" type="password" autocomplete="off" />
+            calendar link or token
+            <input name="calendarToken" autocomplete="off" spellcheck="false" />
           </label>
         </fieldset>
 
-        <button type="submit">Save</button>
+        <button type="submit">save</button>
         <output id="status"></output>
       </form>
     </main>
-    <script src="options.js"></script>
+    <script type="module" src="options.js"></script>
   </body>
 </html>

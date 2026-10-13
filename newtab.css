@@ -157,6 +157,21 @@ svg {
   line-height: 1.2;
 }
 
+/* "Conference Room / Sammet": the in-person room from the options page. */
+.title-place:has(#room-name:empty) {
+  display: none;
+}
+
+.title-place {
+  color: var(--foreground);
+}
+
+.title-sep {
+  margin: 0 calc(6 * var(--px));
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
 .clock {
   display: flex;
   flex-direction: column;
@@ -619,6 +634,40 @@ svg {
   width: calc(12 * var(--px));
   height: calc(12 * var(--px));
   color: var(--cyan);
+}
+
+/* "Genera · Sammet": the in-person room, when the event has one. */
+.event-place,
+.event-zoom {
+  display: flex;
+  align-items: center;
+  gap: calc(4 * var(--px));
+  min-width: 0;
+}
+
+.event-place::after {
+  margin-left: calc(1 * var(--px));
+  color: var(--text-tertiary);
+  font-weight: 400;
+  content: "·";
+}
+
+.event-place svg {
+  color: var(--text-tertiary);
+}
+
+/* The room this screen is in. */
+.event-place.here {
+  color: var(--cyan);
+  font-weight: 600;
+}
+
+.event-place.here svg {
+  color: var(--cyan);
+}
+
+.event-place[hidden] {
+  display: none;
 }
 
 /* "Aegis · now" or "Verve · starting soon", in the event's colour. */

@@ -1,7 +1,10 @@
 import { fetchEvents } from "./room-status.js";
-import { loadSettings } from "./settings.js";
+import { loadSettings, seedSettings } from "./settings.js";
 
 const api = globalThis.browser ?? globalThis.chrome;
+
+// Fills in the packaged tokens the first time the extension runs.
+const seeded = seedSettings();
 
 // How long the room must be completely quiet before we reset the browser.
 const IDLE_MINUTES = 60;
@@ -206,6 +209,7 @@ api.webRequest.onBeforeSendHeaders.addListener(
 
 // The rooms page shows this saved copy straight away, then fetches its own.
 async function refreshCalendar() {
+  await seeded;
   const { calendarToken } = await loadSettings();
   if (calendarToken) await fetchEvents(calendarToken);
 }
