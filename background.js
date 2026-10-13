@@ -24,6 +24,10 @@ const NEW_TAB_URLS = new Set([
 const ZOOM_LAUNCH_PATHS = ["/j/", "/s/", "/w/", "/my/"];
 const ZOOM_WEB_CLIENT_PATHS = ["/wc/"];
 const ZOOM_ENDED_PATHS = ["/postattendee", "/wc/leave"];
+// The desktop app opens zoom.us/postattendee after a meeting, which redirects
+// server-side to a marketing page tagged with this. The tab only ever shows
+// the final URL, so this is the reliable way to spot the post-meeting ad.
+const ZOOM_ENDED_FROM = new Set(["web_join_post_meeting"]);
 const ZOOM_ALLOWED_PATHS = [
   "/join",
   "/launch",
@@ -52,6 +56,7 @@ function classifyZoomUrl(rawUrl) {
 
   const path = url.pathname;
   const matches = (prefixes) => prefixes.some((p) => path.startsWith(p));
+  if (ZOOM_ENDED_FROM.has(url.searchParams.get("from"))) return "ended";
   if (matches(ZOOM_ENDED_PATHS)) return "ended";
   if (matches(ZOOM_WEB_CLIENT_PATHS)) return "web-client";
   if (matches(ZOOM_LAUNCH_PATHS)) return "launch";

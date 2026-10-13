@@ -5,7 +5,12 @@ const api = globalThis.browser ?? globalThis.chrome;
 api.runtime.onMessage.addListener((message) => {
   if (message?.type !== "media-playing?") return;
   const playing = [...document.querySelectorAll("video, audio")].some(
-    (media) => !media.paused && !media.ended && media.readyState > 2,
+    (media) =>
+      !media.paused &&
+      !media.ended &&
+      !media.muted &&
+      media.volume > 0 &&
+      media.readyState > 2,
   );
   if (playing) return Promise.resolve(true);
 });
