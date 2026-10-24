@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "RCCR",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "cyrene zhang",
   "description": "recurse center conference room. dm @cyrene-zhang if you run into any issues or have any questions / suggestions!",
   "browser_specific_settings": {
