@@ -1,0 +1,55 @@
+# Publishes a release with the Firefox and Chrome packages whenever
+# manifest.json's version is one that hasn't been released yet. These are
+# --public builds, so no tokens or Zoom links go into them.
+name: release
+
+on:
+  push:
+    branches: [main]
+    paths: [manifest.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Check for a new version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(node -p 'require("./manifest.json").version')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" > /dev/null 2>&1; then
+            echo "v$version is already released, skipping"
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        if: steps.version.outputs.new == 'true'
+        run: |
+          node build.mjs firefox --public
+          node build.mjs chrome --public
+
+      - name: Release
+        if: steps.version.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" web-ext-artifacts/public/* \
+            --target "$GITHUB_SHA" \
+            --title "RCCR v$VERSION" \
+            --notes-file .github/release-notes.md \
+            --generate-notes
