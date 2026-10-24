@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        { "header": "Origin", "operation": "set", "value": "https://recurse.rctogether.com" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "||recurse.rctogether.com/cable",
+      "resourceTypes": ["websocket"]
+    }
+  }
+]

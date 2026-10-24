@@ -19,6 +19,7 @@ const MINUTE = 60 * 1000;
 const NEW_TAB_URLS = new Set([
   "about:newtab",
   "about:home",
+  "chrome://newtab/",
   api.runtime.getURL("newtab.html"),
 ]);
 
@@ -115,12 +116,10 @@ api.tabs.onCreated.addListener((tab) => {
 
 api.tabs.onRemoved.addListener((tabId) => freshTabs.delete(tabId));
 
-api.tabs.onUpdated.addListener(
-  (_tabId, changeInfo, tab) => {
-    if (changeInfo.url) handleTabUrl(tab, changeInfo.url);
-  },
-  { properties: ["url"] },
-);
+// No { properties: ["url"] } filter, since Chrome doesn't take one.
+api.tabs.onUpdated.addListener((_tabId, changeInfo, tab) => {
+  if (changeInfo.url) handleTabUrl(tab, changeInfo.url);
+});
 
 async function isMediaPlaying(tab) {
   if (tab.audible) return true;
@@ -189,23 +188,27 @@ async function tick() {
 }
 
 // The rooms page watches Virtual RC over a websocket, but RC Together only
-// accepts connections from its own site, and Firefox sends the extension's
-// moz-extension:// origin. So swap it.
+// accepts connections from its own site, and the browser sends the
+// extension's own moz-extension:// or chrome-extension:// origin. So swap it.
+// Chrome doesn't allow blocking webRequest, so its package does this with the
+// declarativeNetRequest rule in chrome-rules.json instead.
 const RCT_ORIGIN = "https://recurse.rctogether.com";
 
-api.webRequest.onBeforeSendHeaders.addListener(
-  ({ requestHeaders }) => ({
-    requestHeaders: [
-      ...requestHeaders.filter((header) => header.name.toLowerCase() !== "origin"),
-      { name: "Origin", value: RCT_ORIGIN },
-    ],
-  }),
-  {
-    urls: ["wss://recurse.rctogether.com/cable*", "https://recurse.rctogether.com/cable*"],
-    types: ["websocket"],
-  },
-  ["blocking", "requestHeaders"],
-);
+if (api.runtime.getManifest().permissions.includes("webRequestBlocking")) {
+  api.webRequest.onBeforeSendHeaders.addListener(
+    ({ requestHeaders }) => ({
+      requestHeaders: [
+        ...requestHeaders.filter((header) => header.name.toLowerCase() !== "origin"),
+        { name: "Origin", value: RCT_ORIGIN },
+      ],
+    }),
+    {
+      urls: ["wss://recurse.rctogether.com/cable*", "https://recurse.rctogether.com/cable*"],
+      types: ["websocket"],
+    },
+    ["blocking", "requestHeaders"],
+  );
+}
 
 // The rooms page shows this saved copy straight away, then fetches its own.
 async function refreshCalendar() {
